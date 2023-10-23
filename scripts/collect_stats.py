@@ -39,7 +39,7 @@ SYSCTL_NAMES = [
     'net.ipv4.tcp_timestamps',
     'net.ipv4.tcp_syn_retries',
 ]
-SYSCTL_NOT_IN_CONTAINER = set([
+SYSCTL_NOT_IN_CONTAINER = {
     'net.core.netdev_max_backlog',
     'net.core.netdev_budget',
     'net.core.busy_poll',
@@ -57,7 +57,7 @@ SYSCTL_NOT_IN_CONTAINER = set([
     'net.ipv4.tcp_tw_reuse',
     'net.ipv4.tcp_timestamps',
     'net.ipv4.tcp_syn_retries',
-])
+}
 SYSCTL_ENTRIES = {
     sysctl_name: (sysctl_name.replace('net.ipv4.', '').replace('.', '_'), '/proc/sys/' + sysctl_name.replace('.', '/'))
     for sysctl_name in SYSCTL_NAMES
@@ -134,8 +134,9 @@ def nl_socket():
 @contextlib.contextmanager
 def rtnl_link(socket, interface_name):
     link_p = ffi.new('struct rtnl_link **')
-    failed = phoebe.rtnl_link_get_kernel(socket, 0, interface_name, link_p)
-    if failed:
+    if failed := phoebe.rtnl_link_get_kernel(
+        socket, 0, interface_name, link_p
+    ):
         raise RuntimeError('Failed to open link')
 
     yield link_p[0]
@@ -201,7 +202,7 @@ def collect_stats(
             else:
                 raise
 
-        if 'tcp_rmem' == field_name or 'tcp_wmem' == field_name:
+        if field_name in ['tcp_rmem', 'tcp_wmem']:
             values = value.split('\t')
             for idx, value in enumerate(values):
                 setattr(row, field_name + str(idx), int(value))
